@@ -115,13 +115,29 @@ Order by descending cost, and do not use any subqueries. */
 
 
 SELECT f.name as facility, CONCAT(m.surname, ', ', m.firstname) AS name, f.guestcost as cost
-FROM Bookings as b, Facilities as f, Members as m
-WHERE f.guestcost >30 and b.starttime = '2012-09-14'
+FROM Bookings as b
+INNER JOIN Facilities as f
+ON f.facid=b.facid
+INNER JOIN Members as m
+ON m.memid=b.memid
+WHERE b.starttime LIKE '2012-09-14%'
+AND m.memid=0 AND f.guestcost >30 or m.memid<> 0 and f.membercost >30
 ORDER BY cost DESC;
 
 
-
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
+
+SELECT f.name as facility, CONCAT(m.surname, ', ', m.firstname) AS name, f.guestcost as cost
+FROM Bookings as b
+INNER JOIN Facilities as f
+ON f.facid=b.facid
+INNER JOIN Members as m
+ON m.memid=b.memid
+WHERE b.starttime LIKE '2012-09-14%'
+AND f.guestcost IN (select guestcost FROM Facilities WHERE guestcost >30)
+AND b.memid=0
+ORDER BY cost DESC;
+
 
 
 /* PART 2: SQLite
@@ -130,15 +146,113 @@ Export the country club data from PHPMyAdmin, and connect to a local SQLite inst
 for the following questions.  
 
 QUESTIONS:
+
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
 
+    query1 = """
+SELECT b.facid,
+CASE
+WHEN b.facid=0 THEN (SELECT COUNT(*)*25.0 FROM Bookings WHERE b.facid=0 and b.memid=0)+(SELECT COUNT(*)*5.0 FROM Bookings WHERE b.facid=0 and b.memid<>0)
+
+WHEN b.facid=1 THEN (SELECT COUNT(*)*25.0 FROM Bookings WHERE b.facid=1 and b.memid=0)+(SELECT COUNT(*)*5.0 FROM Bookings WHERE b.facid=1 and b.memid<>0)
+
+WHEN b.facid=2 THEN (SELECT COUNT(*)*15.5 FROM Bookings WHERE b.facid=2 and b.memid=0)+(SELECT COUNT(*)*0.0 FROM Bookings WHERE b.facid=2 and b.memid<>0)
+
+WHEN b.facid=3 THEN (SELECT COUNT(*)*5.0 FROM Bookings WHERE b.facid=3 and b.memid=0)+(SELECT COUNT(*)*0.0 FROM Bookings WHERE b.facid=3 and b.memid<>0)
+
+WHEN b.facid=4 THEN (SELECT COUNT(*)*80.0 FROM Bookings WHERE b.facid=4 and b.memid=0)+(SELECT COUNT(*)*9.9 FROM Bookings WHERE b.facid=4 and b.memid<>0)
+
+WHEN b.facid=5 THEN (SELECT COUNT(*)*80.0 FROM Bookings WHERE b.facid=5 and b.memid=0)+(SELECT COUNT(*)*9.9 FROM Bookings WHERE b.facid=5 and b.memid<>0)
+
+WHEN b.facid=6 THEN (SELECT COUNT(*)*17.5 FROM Bookings WHERE b.facid=6 and b.memid=0)+(SELECT COUNT(*)*3.5 FROM Bookings WHERE b.facid=6 and b.memid<>0)
+
+WHEN b.facid=7 THEN (SELECT COUNT(*)*5.0 FROM Bookings WHERE b.facid=7 and b.memid=0)+(SELECT COUNT(*)*0.0 FROM Bookings WHERE b.facid=7 and b.memid<>0)
+ELSE (SELECT COUNT(*)*5.0 FROM Bookings WHERE b.facid=8 and b.memid=0)+(SELECT COUNT(*)*0.0 FROM Bookings WHERE b.facid=8 and b.memid<>0)
+END revenue
+
+FROM Bookings as b, Facilities as f
+WHERE revenue<1000
+GROUP BY b.facid
+ORDER BY revenue;
+
+        """
+
+
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
+
+
+query1 = """
+        SELECT m1.surname||', '|| m1.firstname AS name, 
+        m2.surname||', '||m2.firstname AS 'recommended by'
+        FROM Members m1
+        INNER JOIN Members m2 ON
+        m2.memid = m1.recommendedby
+        WHERE m1.memid<>0
+        ORDER BY name;
+        """
 
 
 /* Q12: Find the facilities with their usage by member, but not guests */
 
+query1 = """
+        SELECT facid,
+        CASE
+        WHEN facid=0 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=0)
+        WHEN facid=1 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=1)
+        WHEN facid=2 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=2)
+        WHEN facid=3 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=3)
+        WHEN facid=4 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=4)
+        WHEN facid=5 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=5)
+        WHEN facid=6 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=6)
+        WHEN facid=7 THEN (SELECT COUNT(*) FROM Bookings WHERE facid=7)
+        ELSE (SELECT COUNT(*) FROM Bookings WHERE facid=8)
+        END 'usage'
+
+        FROM Bookings
+        WHERE memid <>0
+        GROUP BY facid;
+        """
 
 /* Q13: Find the facilities usage by month, but not guests */
 
+ query1 = """
+        SELECT facid,
+        CASE
+        WHEN facid=0 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=0)
+        WHEN facid=1 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=1)
+        WHEN facid=2 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=2)
+        WHEN facid=3 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=3)
+        WHEN facid=4 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=4)
+        WHEN facid=5 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=5)
+        WHEN facid=6 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=6)
+        WHEN facid=7 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=7)
+        ELSE (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-07%' and facid=8)
+        END 'month 7',
+        CASE
+        WHEN facid=0 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=0)
+        WHEN facid=1 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=1)
+        WHEN facid=2 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=2)
+        WHEN facid=3 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=3)
+        WHEN facid=4 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=4)
+        WHEN facid=5 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=5)
+        WHEN facid=6 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=6)
+        WHEN facid=7 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-08%' and facid=7)
+        ELSE (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=8)
+        END 'month 8',
+        CASE
+        WHEN facid=0 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=0)
+        WHEN facid=1 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=1)
+        WHEN facid=2 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=2)
+        WHEN facid=3 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=3)
+        WHEN facid=4 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=4)
+        WHEN facid=5 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=5)
+        WHEN facid=6 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=6)
+        WHEN facid=7 THEN (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=7)
+        ELSE (SELECT COUNT(*) FROM Bookings WHERE starttime LIKE '2012-09%' and facid=8)
+        END 'month 9'
+        FROM Bookings
+        WHERE memid <>0
+        GROUP BY facid;
+        """
